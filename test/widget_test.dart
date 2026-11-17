@@ -1,12 +1,16 @@
 import 'package:belajarflutter/column_widget.dart';
 import 'package:belajarflutter/hello_world.dart';
 import 'package:belajarflutter/main.dart';
+import 'package:belajarflutter/model/login.dart';
+import 'package:belajarflutter/model/produk.dart';
+import 'package:belajarflutter/model/registrasi.dart';
 import 'package:belajarflutter/row_widget.dart';
+import 'package:belajarflutter/ui/login_page.dart' as ui_login;
 import 'package:belajarflutter/ui/produk_form.dart';
 import 'package:belajarflutter/ui/produk_page.dart';
+import 'package:belajarflutter/ui/registrasi_page.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:shared_preferences/shared_preferences.dart';
 
 void main() {
   testWidgets('HelloWorld widget test', (WidgetTester tester) async {
@@ -33,69 +37,86 @@ void main() {
     expect(find.text('Row 4'), findsOneWidget);
   });
 
-  testWidgets('ProdukForm and ProdukDetail navigation test',
-      (WidgetTester tester) async {
-    await tester.pumpWidget(const MaterialApp(home: ProdukForm()));
-    expect(find.text('Form Produk'), findsOneWidget);
+  test('Model JSON parsing test (Login, Registrasi, Produk)', () {
+    final login = Login.fromJson({
+      'code': 200,
+      'status': true,
+      'data': {
+        'token': 'abc123token',
+        'user': {'id': 1, 'email': 'admin@admin.com'}
+      }
+    });
+    expect(login.code, 200);
+    expect(login.token, 'abc123token');
+    expect(login.userEmail, 'admin@admin.com');
 
-    await tester.enterText(
-        find.widgetWithText(TextField, 'Kode Produk'), 'A001');
-    await tester.enterText(
-        find.widgetWithText(TextField, 'Nama Produk'), 'Kulkas');
-    await tester.enterText(find.widgetWithText(TextField, 'Harga'), '30000');
+    final reg = Registrasi.fromJson({
+      'code': 200,
+      'status': true,
+      'data': 'Registrasi Berhasil',
+    });
+    expect(reg.data, 'Registrasi Berhasil');
 
-    await tester.tap(find.text('Simpan'));
-    await tester.pumpAndSettle();
-
-    expect(find.text('Detail Produk'), findsOneWidget);
-    expect(find.text('Kode Produk : A001'), findsOneWidget);
-    expect(find.text('Nama Produk : Kulkas'), findsOneWidget);
-    expect(find.text('Harga Produk : 30000'), findsOneWidget);
+    final produk = Produk.fromJson({
+      'id': 1,
+      'kode_produk': 'A001',
+      'nama_produk': 'Kamera',
+      'harga': 5000000,
+    });
+    expect(produk.kodeProduk, 'A001');
+    expect(produk.namaProduk, 'Kamera');
+    expect(produk.hargaProduk, 5000000);
   });
 
-  testWidgets('ProdukPage ListView test', (WidgetTester tester) async {
-    await tester.pumpWidget(const MaterialApp(home: ProdukPage()));
-    expect(find.text('List Data Produk'), findsOneWidget);
-    expect(find.text('Kulkas'), findsOneWidget);
-    expect(find.text('Playstation'), findsOneWidget);
-    expect(find.text('Radio'), findsOneWidget);
-  });
-
-  testWidgets('LoginPage, LocalStorage, HomePage, Sidemenu, and AboutPage test',
+  testWidgets('Modul 4 LoginPage and RegistrasiPage navigation test',
       (WidgetTester tester) async {
-    SharedPreferences.setMockInitialValues({});
-
-    await tester.pumpWidget(const MyApp());
+    await tester.pumpWidget(const MaterialApp(home: ui_login.LoginPage()));
     expect(find.text('Login'), findsWidgets);
+    expect(find.text('Registrasi'), findsOneWidget);
 
-    // Enter admin credentials
-    await tester.enterText(
-        find.widgetWithText(TextField, 'Masukkan Username'), 'admin');
-    await tester.enterText(
-        find.widgetWithText(TextField, 'Masukkan Password'), 'admin');
-
-    await tester.tap(find.widgetWithText(ElevatedButton, 'Login'));
+    await tester.tap(find.text('Registrasi'));
     await tester.pumpAndSettle();
 
-    // Expect success dialog
-    expect(find.text('Anda Berhasil Login'), findsOneWidget);
-    await tester.tap(find.text('OK'));
+    expect(find.byType(RegistrasiPage), findsOneWidget);
+    expect(find.widgetWithText(TextFormField, 'Nama'), findsOneWidget);
+    expect(find.widgetWithText(TextFormField, 'Email'), findsOneWidget);
+    expect(find.widgetWithText(TextFormField, 'Password'), findsOneWidget);
+    expect(find.widgetWithText(TextFormField, 'Konfirmasi Password'),
+        findsOneWidget);
+  });
+
+  testWidgets(
+      'Modul 4 ProdukPage, ProdukDetail, and ProdukForm (Tambah & Ubah) test',
+      (WidgetTester tester) async {
+    await tester.pumpWidget(const MyApp());
+    expect(find.text('List Produk'), findsOneWidget);
+    expect(find.text('Kamera'), findsOneWidget);
+    expect(find.text('Kulkas'), findsOneWidget);
+    expect(find.text('Mesin Cuci'), findsOneWidget);
+
+    // Tap '+' icon to open Tambah Produk form
+    await tester.tap(find.byIcon(Icons.add));
+    await tester.pumpAndSettle();
+    expect(find.text('TAMBAH PRODUK'), findsOneWidget);
+    expect(find.text('SIMPAN'), findsOneWidget);
+
+    // Go back to ProdukPage
+    await tester.pageBack();
     await tester.pumpAndSettle();
 
-    // Expect HomePage with saved username from SharedPreferences
-    expect(find.text('Home Page'), findsOneWidget);
-    expect(find.text('Ini adalah halaman User admin'), findsOneWidget);
-
-    // Open Drawer (Sidemenu) and navigate to AboutPage
-    final ScaffoldState state = tester.firstState(find.byType(Scaffold));
-    state.openDrawer();
+    // Tap 'Kamera' item to open ProdukDetail
+    await tester.tap(find.text('Kamera'));
     await tester.pumpAndSettle();
+    expect(find.text('Detail Produk'), findsOneWidget);
+    expect(find.text('Kode : A001'), findsOneWidget);
+    expect(find.text('Nama : Kamera'), findsOneWidget);
+    expect(find.text('Harga : Rp. 5000000'), findsOneWidget);
 
-    expect(find.text('Sidemenu'), findsOneWidget);
-    await tester.tap(find.text('About'));
+    // Tap 'EDIT' button to open Ubah Produk form
+    await tester.tap(find.text('EDIT'));
     await tester.pumpAndSettle();
-
-    expect(find.text('About Page'), findsOneWidget);
-    expect(find.text('Ini adalah halaman About'), findsOneWidget);
+    expect(find.text('UBAH PRODUK'), findsOneWidget);
+    expect(find.text('UBAH'), findsOneWidget);
+    expect(find.byType(ProdukForm), findsOneWidget);
   });
 }
