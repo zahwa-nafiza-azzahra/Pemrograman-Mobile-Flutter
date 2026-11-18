@@ -7,10 +7,11 @@ class Registrasi {
 
   factory Registrasi.fromJson(Map<String, dynamic> obj) {
     return Registrasi(
-      code: obj['code'],
-      status: obj['status'],
-      data: obj['data'],
+      code: obj['code'] is int
+          ? obj['code'] as int?
+          : int.tryParse(obj['code'].toString()),
+      status: obj['status'] as bool?,
+      data: obj['data']?.toString(),
     );
   }
 }
-

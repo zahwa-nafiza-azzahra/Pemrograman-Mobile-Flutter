@@ -1,5 +1,9 @@
 import 'package:flutter/material.dart';
+import 'package:belajarflutter/bloc/login_bloc.dart';
+import 'package:belajarflutter/helpers/user_info.dart';
+import 'package:belajarflutter/ui/produk_page.dart';
 import 'package:belajarflutter/ui/registrasi_page.dart';
+import 'package:belajarflutter/widget/warning_dialog.dart';
 
 class LoginPage extends StatefulWidget {
   const LoginPage({Key? key}) : super(key: key);
@@ -11,7 +15,6 @@ class LoginPage extends StatefulWidget {
 
 class _LoginPageState extends State<LoginPage> {
   final _formKey = GlobalKey<FormState>();
-  // ignore: unused_field
   bool _isLoading = false;
 
   final _emailTextboxController = TextEditingController();
@@ -83,10 +86,57 @@ class _LoginPageState extends State<LoginPage> {
     return ElevatedButton(
       child: const Text("Login"),
       onPressed: () {
-        // ignore: unused_local_variable
         var validate = _formKey.currentState!.validate();
+        if (validate) {
+          if (!_isLoading) _submit();
+        }
       },
     );
+  }
+
+  void _submit() {
+    _formKey.currentState!.save();
+    setState(() {
+      _isLoading = true;
+    });
+    LoginBloc.login(
+            email: _emailTextboxController.text,
+            password: _passwordTextboxController.text)
+        .then((value) async {
+      if (value.code == 200 && value.token != null && value.userID != null) {
+        await UserInfo().setToken(value.token.toString());
+        await UserInfo().setUserID(int.parse(value.userID.toString()));
+        if (!mounted) return;
+        setState(() {
+          _isLoading = false;
+        });
+        Navigator.pushReplacement(
+            context, MaterialPageRoute(builder: (context) => const ProdukPage()));
+      } else {
+        if (!mounted) return;
+        setState(() {
+          _isLoading = false;
+        });
+        showDialog(
+            context: context,
+            barrierDismissible: false,
+            builder: (BuildContext context) => const WarningDialog(
+                  description: "Login gagal, silahkan coba lagi",
+                ));
+      }
+    }, onError: (error) {
+      debugPrint(error.toString());
+      if (!mounted) return;
+      setState(() {
+        _isLoading = false;
+      });
+      showDialog(
+          context: context,
+          barrierDismissible: false,
+          builder: (BuildContext context) => const WarningDialog(
+                description: "Login gagal, silahkan coba lagi",
+              ));
+    });
   }
 
   // Membuat menu untuk membuka halaman registrasi
@@ -105,4 +155,3 @@ class _LoginPageState extends State<LoginPage> {
     );
   }
 }
-

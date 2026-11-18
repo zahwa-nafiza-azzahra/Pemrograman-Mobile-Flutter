@@ -1,6 +1,9 @@
 import 'package:flutter/material.dart';
+import 'package:belajarflutter/bloc/produk_bloc.dart';
 import 'package:belajarflutter/model/produk.dart';
 import 'package:belajarflutter/ui/produk_form.dart';
+import 'package:belajarflutter/ui/produk_page.dart';
+import 'package:belajarflutter/widget/warning_dialog.dart';
 
 // ignore: must_be_immutable
 class ProdukDetail extends StatefulWidget {
@@ -76,7 +79,30 @@ class _ProdukDetailState extends State<ProdukDetail> {
         //tombol hapus
         OutlinedButton(
           child: const Text("Ya"),
-          onPressed: () {},
+          onPressed: () {
+            Navigator.pop(context);
+            ProdukBloc.deleteProduk(id: widget.produk!.id).then((value) {
+              if (!mounted) return;
+              if (value) {
+                Navigator.of(context).pushAndRemoveUntil(
+                    MaterialPageRoute(builder: (context) => const ProdukPage()),
+                    (route) => false);
+              } else {
+                showDialog(
+                    context: context,
+                    builder: (BuildContext context) => const WarningDialog(
+                          description: "Hapus gagal, silahkan coba lagi",
+                        ));
+              }
+            }, onError: (error) {
+              if (!mounted) return;
+              showDialog(
+                  context: context,
+                  builder: (BuildContext context) => const WarningDialog(
+                        description: "Hapus gagal, silahkan coba lagi",
+                      ));
+            });
+          },
         ),
         //tombol batal
         OutlinedButton(
